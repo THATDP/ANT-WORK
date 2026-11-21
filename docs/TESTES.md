@@ -129,6 +129,7 @@ Sempre que um teste precisar de um lugar para construir, use `chunk.canPlace(see
 | “Espaço ocupado” em teste de construção | ninho ocupa tiles | varredura com `canPlace` |
 | Teste de ciclo de vida instável | predadores matavam larvas | `world.maxPredators = 0` + morte forçada |
 | Jogador “Fundador” fantasma | `createPlayerColony` adicionava membro sozinho | membro é adicionado na camada de rede |
+| `spawn` de predador retornava `null` em alguns sorteios | o ponto do teste caía em água (bioma depende da semente) | helper `spawnNear` procura terra seca e fixa a posição pedida |
 
 ## 5. Scripts de medição
 
