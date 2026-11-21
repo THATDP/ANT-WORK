@@ -11,6 +11,28 @@ async function setupColony() {
   return { world, c };
 }
 
+/**
+ * Spawn determinístico de predador para teste.
+ *
+ * O ponto pedido pode cair em água (o bioma depende da semente) e o spawn real
+ * recusa água; então criamos num ponto seco próximo e devolvemos o predador
+ * exatamente onde o teste pediu. Assim a distância usada pelas asserções é
+ * estável e o teste mede a decisão da IA, não a sorte do bioma.
+ */
+function spawnNear(world, kind, x, y, opts = {}, maxRadius = 300) {
+  let pred = null;
+  for (let r = 0; r <= maxRadius && !pred; r += 10) {
+    for (let i = 0; i < (r === 0 ? 1 : 16) && !pred; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      pred = world.predators.spawn(kind, x + Math.cos(a) * r, y + Math.sin(a) * r, opts);
+    }
+  }
+  if (!pred) throw new Error(`sem ponto válido para ${kind} perto de ${Math.round(x)},${Math.round(y)}`);
+  pred.x = x;
+  pred.y = y;
+  return pred;
+}
+
 test('operária com fome procura comida/entrega, não fica ociosa', async () => {
   const { world, c } = await setupColony();
   c.stock = Object.fromEntries(RESOURCE_KEYS.map((k) => [k, 0]));
@@ -35,7 +57,7 @@ test('soldado ataca predador próximo quando a força permite', async () => {
   const { world, c } = await setupColony();
   const soldier = [...c.ants].find((a) => a.role === ROLE.SOLDIER);
   assert.ok(soldier, 'colônia deve ter soldado');
-  const pred = world.predators.spawn(PREDATOR.BEETLE, soldier.x + 80, soldier.y + 40, { hunger: 90 });
+  const pred = spawnNear(world, PREDATOR.BEETLE, soldier.x + 80, soldier.y + 40, { hunger: 90 });
   assert.ok(pred);
   world.defence.registerAttack(soldier, pred);
   think(soldier, world);
@@ -47,7 +69,7 @@ test('operária foge de predador quando sozinha', async () => {
   const { world, c } = await setupColony();
   const worker = [...c.ants].find((a) => a.role === ROLE.WORKER);
   worker.hp = worker.maxHp;
-  const pred = world.predators.spawn(PREDATOR.LIZARD, worker.x + 60, worker.y, { hunger: 95 });
+  const pred = spawnNear(world, PREDATOR.LIZARD, worker.x + 60, worker.y, { hunger: 95 });
   pred.power = 20; pred.tolerance = 8;
   // remove soldados aliados por perto para simular solidão
   for (const a of c.ants) if (a.role === ROLE.SOLDIER) { a.x = worker.x + 5000; a.y = worker.y; }
@@ -57,7 +79,7 @@ test('operária foge de predador quando sozinha', async () => {
 
 test('predador recua quando encontra resistência alta', async () => {
   const { world, c } = await setupColony();
-  const pred = world.predators.spawn(PREDATOR.BEETLE, c.nest.x + 200, c.nest.y, { hunger: 90 });
+  const pred = spawnNear(world, PREDATOR.BEETLE, c.nest.x + 200, c.nest.y, { hunger: 90 });
   pred.hp = pred.maxHp * 0.25;
   for (let i = 0; i < 6; i++) {
     const s = world.spawnAnt(c, ROLE.SOLDIER, { x: pred.x + 20 + i * 5, y: pred.y + 10 });
@@ -72,7 +94,7 @@ test('vespa prioriza larvas (berçário) em vez de adultos', async () => {
   const { world, c } = await setupColony();
   const larva = [...c.ants].find((a) => a.role === ROLE.LARVA);
   assert.ok(larva, 'precisa de larva');
-  const wasp = world.predators.spawn(PREDATOR.WASP, larva.x + 300, larva.y + 100, { hunger: 90 });
+  const wasp = spawnNear(world, PREDATOR.WASP, larva.x + 300, larva.y + 100, { hunger: 90 });
   wasp.think(world);
   assert.equal(wasp.state, PREDATOR_STATE.RAID);
   assert.ok(wasp.attackTarget);
@@ -93,7 +115,7 @@ test('cupim ataca estruturas da colônia alvo', async () => {
   }
   assert.ok(built?.ok, 'precisa de uma estrutura para o cupim atacar');
   built.structure.progress = 100;
-  const termite = world.predators.spawn(PREDATOR.TERMITE, c.nest.x + 100, c.nest.y + 100, { homeColony: c.id, hunger: 80 });
+  const termite = spawnNear(world, PREDATOR.TERMITE, c.nest.x + 100, c.nest.y + 100, { homeColony: c.id, hunger: 80 });
   termite.think(world);
   assert.equal(termite.state, PREDATOR_STATE.RAID);
   assert.ok(termite.structureTarget);
@@ -102,7 +124,7 @@ test('cupim ataca estruturas da colônia alvo', async () => {
 test('formiga-leão não persegue: fica emboscada', async () => {
   const { world, c } = await setupColony();
   const ant = [...c.ants].find((a) => a.role === ROLE.WORKER);
-  const lion = world.predators.spawn(PREDATOR.ANTLION, ant.x + 10, ant.y + 10, {});
+  const lion = spawnNear(world, PREDATOR.ANTLION, ant.x + 10, ant.y + 10, {});
   assert.ok(lion);
   lion.think(world);
   assert.equal(lion.state, PREDATOR_STATE.AMBUSH);
