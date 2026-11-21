@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'arena/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: testes + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: instalar dependências
+        run: npm ci
+
+      - name: rodar a suíte do backend (55 testes)
+        run: npm test
+
+      - name: build do frontend
+        run: npm run build
+        env:
+          VITE_BASE: /
+          VITE_SERVER_URL: ''
+
+      - name: guardar o build do frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 5
