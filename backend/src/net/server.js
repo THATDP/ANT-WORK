@@ -401,7 +401,11 @@ export function createRealtimeServer({ world, store, persistence, config }) {
         if (!name) return reply({ kind: 'error', text: 'Nome de colônia inválido' });
         const minPlay = config.colonyCreateMinPlaytime ?? 3;
         if (player.stats.playtime < minPlay) return reply({ kind: 'error', text: 'Explore um pouco antes de fundar uma colônia' });
-        const colony = world.createPlayerColony({ name, sessionId: player.sessionId, color: Number(msg?.color) || undefined });
+        const colony = world.createPlayerColony({
+          name, sessionId: player.sessionId,
+          color: Number(msg?.color) || undefined,
+          x: player.x, y: player.y,   // o ninho nasce onde o fundador está
+        });
         colony.addMember(player.sessionId, player.name);
         player.colonyId = colony.id;
         player.color = colony.color;

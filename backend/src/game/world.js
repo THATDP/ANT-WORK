@@ -236,6 +236,18 @@ export class World {
         break;
       }
       if (x == null) { x = this.sizePx * 0.4; y = this.sizePx * 0.4; }
+    } else if (isWater(this.seed, x, y)) {
+      // o fundador não pode ficar preso na água: procura o ponto seco mais próximo
+      outer: for (let r = 1; r <= 8; r++) {
+        for (let dy = -r; dy <= r; dy++) {
+          for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            const px = x + dx * TILE;
+            const py = y + dy * TILE;
+            if (!isWater(this.seed, px, py)) { x = px; y = py; break outer; }
+          }
+        }
+      }
     }
     const colony = new Colony({
       id: makeColonyId(),
@@ -418,7 +430,7 @@ export class World {
         colony.alert('brood', 'Uma larva foi perdida', ant.x, ant.y, 6000);
       }
     }
-    if (!ant.role === ROLE.LARVA || ant.role !== ROLE.LARVA) {
+    if (ant.role !== ROLE.LARVA) {
       this.economy.spawnCorpse(ant.x, ant.y, RESOURCE.INSECT, ant.role === ROLE.SOLDIER ? 8 : 4);
     }
     this.antIndex.remove(ant);

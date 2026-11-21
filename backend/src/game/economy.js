@@ -159,7 +159,7 @@ export class EconomySystem {
     let delta = 0;
     if (foodPerPop > 4) delta += 0.12;
     else if (foodPerPop < 1.5) delta -= 0.5;
-    if (colony.stock.water / pop < 0.6) delta -= 0.35;
+    if (colony.stock.water / pop < 0.35) delta -= 0.15;
     if (colony.defenceNeed > 0.5) delta -= 0.15;
     for (const s of colony.structures.values()) if (s.progress >= 100) delta += 0.004;
     colony.morale = clamp(colony.morale + delta * dt, 0, 100);
@@ -343,16 +343,21 @@ export class EconomySystem {
     const food = colony.stock.leaf + colony.stock.seed + colony.stock.fruit + colony.stock.insect + colony.stock.spore;
 
     // quanto cada recurso está "devendo" (0..1)
+    const materialReserve = 160 + pop * 2;   // o suficiente para as próximas obras
     const deficit = {
       insect: clamp(1 - colony.stock.insect / (pop * 1.1), 0, 1),
       fruit: clamp(1 - colony.stock.fruit / (pop * 1.1), 0, 1),
       seed: clamp(1 - colony.stock.seed / (pop * 1.1), 0, 1),
       leaf: clamp(1 - colony.stock.leaf / (pop * 1.1), 0, 1),
       water: clamp(1 - colony.stock.water / (pop * 1.2), 0, 1),
-      material: clamp(1 - colony.stock.material / Math.max(30, pop * 0.8), 0, 1),
+      material: colony.stock.material >= materialReserve
+        ? 0
+        : clamp(1 - colony.stock.material / Math.max(30, pop * 0.8), 0, 1),
     };
     if (needs.starving) { deficit.insect += 0.6; deficit.fruit += 0.5; deficit.seed += 0.4; }
-    if (needs.needMaterial) deficit.material += 0.4;
+    if (needs.needMaterial && colony.stock.material < materialReserve) deficit.material += 0.4;
+    // sede é urgente: prioriza água sobre o resto
+    if (colony.stock.water < pop * 0.8) deficit.water += 0.8;
 
     const totalDeficit = Object.values(deficit).reduce((s, v) => s + v, 0);
     if (totalDeficit <= 0.0001) return;
@@ -371,6 +376,18 @@ export class EconomySystem {
       }
     }
     if (produced > 0) colony.farProduction = (colony.farProduction || 0) + produced;
+
+    // obras continuam avançando em LOD abstrato: sem isso, colônias longe de
+    // qualquer jogador acumulariam canteiros parados para sempre
+    let pendingSite = null;
+    for (const s of colony.structures.values()) {
+      if (s.progress < 100) { pendingSite = s; break; }
+    }
+    if (pendingSite) {
+      const workers = Math.min(farWorkers, 20);
+      const advance = dt * (0.02 + workers * 0.035);
+      this.world.build.contribute(pendingSite, { id: `abstract-${colony.id}` }, advance);
+    }
 
     // desgaste: soldados distantes podem cair em patrulha
     if (farSoldiers > 0 && Math.random() < 0.0004 * farSoldiers) {

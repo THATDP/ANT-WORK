@@ -69,14 +69,17 @@ function desiredKinds(ant, needs) {
   const kinds = [];
   if (needs.needWater) kinds.push(RESOURCE.WATER);
   if (needs.hungry) kinds.push(RESOURCE.INSECT, RESOURCE.FRUIT, RESOURCE.SEED, RESOURCE.LEAF);
-  if (needs.needMaterial) kinds.push(RESOURCE.MATERIAL);
-  if (c && c.stock.spore < 3) kinds.push(RESOURCE.SPORE);
+  // material e esporo têm teto: estocar 700 de pedra enquanto falta água é irracional
+  const materialReserve = 160 + (c?.totalPopulation ?? 20) * 2;
+  if (needs.needMaterial && (c?.stock.material ?? 0) < materialReserve) kinds.push(RESOURCE.MATERIAL);
+  if (c && c.stock.spore < 8) kinds.push(RESOURCE.SPORE);
   // sem necessidade urgente: prefere o que está mais escasso no estoque
   if (!kinds.length) {
     const order = RESOURCE_KEYS.slice().sort((a, b) => (c?.stock[a] ?? 0) - (c?.stock[b] ?? 0));
     for (const k of order) {
       const id = RESOURCE_KEYS.indexOf(k);
       if (id === RESOURCE.WATER && (c?.stock.water ?? 0) > 40) continue;
+      if (id === RESOURCE.MATERIAL && (c?.stock.material ?? 0) >= materialReserve) continue;
       kinds.push(id);
     }
   }

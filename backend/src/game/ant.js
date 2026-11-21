@@ -80,10 +80,18 @@ export class Ant {
   }
 
   setTask(task, target = null, targetKind = null, targetId = null) {
+    // repensar a mesma tarefa no mesmo alvo NÃO pode zerar o progresso de
+    // trabalho (senão uma operária nunca termina de coletar: o cérebro
+    // reafirma FORAGE a cada 4–6 ticks e a coleta leva ~11 ticks)
+    const sameTarget = this.task === task && this.targetKind === targetKind && this.targetId === targetId;
     this.task = task;
-    this.state = ANT_STATE.SEEK;
-    this.workTimer = 0;
-    this.workNeeded = 0;
+    if (!sameTarget) {
+      this.state = ANT_STATE.SEEK;
+      this.workTimer = 0;
+      this.workNeeded = 0;
+    } else if (this.state === ANT_STATE.SEEK) {
+      this.state = ANT_STATE.MOVE;
+    }
     if (target) { this.target.x = target.x; this.target.y = target.y; }
     this.targetKind = targetKind;
     this.targetId = targetId;

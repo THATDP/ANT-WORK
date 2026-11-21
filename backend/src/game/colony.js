@@ -312,7 +312,9 @@ export class ColonyDirector {
     const count = (t) => [...c.structures.values()].filter((s) => s.type === t).length;
 
     if (!has(BUILDING.EXIT)) return BUILDING.EXIT;
-    if (count(BUILDING.STORAGE) < 2 && c.totalStored() > c.storageCap * 0.6) return BUILDING.STORAGE;
+    // a capacidade de estoque cresce com a população (não faz sentido parar em 2)
+    const wantStorage = 2 + Math.floor(c.totalPopulation / 45);
+    if (count(BUILDING.STORAGE) < wantStorage && c.totalStored() > c.storageCap * 0.55) return BUILDING.STORAGE;
     if (!has(BUILDING.NURSERY) && c.brood.eggs + c.population.larva > 0) return BUILDING.NURSERY;
     if (!has(BUILDING.FEEDING) && c.morale < 70) return BUILDING.FEEDING;
     if (!has(BUILDING.BARRACKS) && c.personality.aggression > 0.45) return BUILDING.BARRACKS;
@@ -321,7 +323,8 @@ export class ColonyDirector {
     if (!has(BUILDING.FUNGUS) && c.stock.material > 30) return BUILDING.FUNGUS;
     if (!has(BUILDING.WATCHTOWER) && c.morale > 65) return BUILDING.WATCHTOWER;
     if (!has(BUILDING.SHRINE) && c.stock.fruit > 30 && c.population.worker > 8) return BUILDING.SHRINE;
-    if (count(BUILDING.STORAGE) < 4) return BUILDING.STORAGE;
+    if (count(BUILDING.STORAGE) < wantStorage) return BUILDING.STORAGE;
+    if (c.totalStored() > c.storageCap * 0.8) return BUILDING.STORAGE;
     return BUILDING.TUNNEL;
   }
 
@@ -336,7 +339,8 @@ export class ColonyDirector {
     const blueprint = this.nextBlueprint();
     const info = BUILDING_INFO[blueprint];
     const foodReserve = (c.stock.leaf + c.stock.seed + c.stock.fruit + c.stock.insect) > c.totalPopulation * 1.4;
-    if (c.hasStock(info.cost) && foodReserve && c.structures.size < COLONY_LIMITS.maxStructures) {
+    // no máximo 3 obras em andamento: evita 15 canteiros a 0% (e material preso)
+    if (c.hasStock(info.cost) && foodReserve && c.pendingBuilds < 3 && c.structures.size < COLONY_LIMITS.maxStructures) {
       const placed = this.world.build.aiTryBuild(c, blueprint, this.world);
       if (placed.ok) return { action: 'build', structure: placed.structure };
     }

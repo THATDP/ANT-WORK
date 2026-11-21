@@ -1,0 +1,57 @@
+name: Publicar frontend no GitHub Pages
+
+# GitHub Pages só serve arquivos estáticos: o backend Node vive no Render.
+# Configure a URL do Render em Settings > Secrets and variables > Actions >
+# Variables > New repository variable: VITE_SERVER_URL = https://seu-servico.onrender.com
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: build com a base do projeto
+        run: npm run build
+        env:
+          # Pages de projeto é servido em https://usuario.github.io/repo/
+          VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
+      - name: conferir se a URL do backend foi configurada
+        run: |
+          if [ -z "${{ vars.VITE_SERVER_URL }}" ]; then
+            echo "::warning::VITE_SERVER_URL não definida — o cliente usará a própria origem e não achará o backend no Pages."
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

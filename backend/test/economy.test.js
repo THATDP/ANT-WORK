@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeWorld } from './helpers.js';
-import { RESOURCE_KEYS, RESOURCE_INFO, RESOURCE, BUILDING, BUILDING_INFO, ROLE } from '../../shared/constants.js';
+import { RESOURCE_KEYS, RESOURCE_INFO, RESOURCE, BUILDING, BUILDING_INFO, ROLE, CHUNK_TILES } from '../../shared/constants.js';
 
 test('estoque nunca ultrapassa a capacidade e nada é duplicado', async () => {
   const { world } = await makeWorld({ config: { autoAiColonies: 0 } });
@@ -104,8 +104,20 @@ test('depósitos aumentam a capacidade de armazenamento', async () => {
   const c = world.createPlayerColony({ name: 'Storage', sessionId: 's1' });
   const base = c.storageCap;
   const { cx, cy } = world.chunkOf(c.nest.x, c.nest.y);
+  const chunk = world.chunks.get(cx, cy);
   c.stock.material = 200;
-  const r = world.build.create(c, BUILDING.STORAGE, cx, cy, 2, 2, null, { asAi: true });
+  // o ninho ocupa células e o bioma varia: procure um local válido de verdade
+  let cell = null;
+  for (let gy = 1; gy < CHUNK_TILES - 2 && !cell; gy++) {
+    for (let gx = 1; gx < CHUNK_TILES - 2; gx++) {
+      if (chunk.canPlace(world.seed, gx, gy, BUILDING_INFO[BUILDING.STORAGE].size, BUILDING.STORAGE).ok) {
+        cell = { gx, gy };
+        break;
+      }
+    }
+  }
+  assert.ok(cell, 'deve existir um local livre no setor do ninho');
+  const r = world.build.create(c, BUILDING.STORAGE, cx, cy, cell.gx, cell.gy, null, { asAi: true });
   assert.equal(r.ok, true, r.reason);
   assert.equal(c.storageCap, base + 250);
 });

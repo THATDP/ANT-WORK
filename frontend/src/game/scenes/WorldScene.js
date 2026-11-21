@@ -262,7 +262,12 @@ export class WorldScene extends Phaser.Scene {
       this.interact = target;
       if (target.kind === 'node') { this.pendingGather = target; this.doGather(); return; }
       if (target.kind === 'structure') { net.act({ type: 'work', id: target.id }); return; }
-      if (target.kind === 'predator') { net.act({ type: 'attack', kind: 'predator', id: target.id }); return; }
+      if (target.kind === 'predator') {
+        const d = Math.hypot(target.data.x - this.selfPos.x, target.data.y - this.selfPos.y);
+        if (d > 52) { hud.toast('Aproxime-se para atacar', '', 1200); return; }
+        net.act({ type: 'attack', kind: 'predator', id: target.id });
+        return;
+      }
     }
     this.moveTarget = { x: world.x, y: world.y };
     this.spawnMarker(world.x, world.y, 0xe9a85b);
@@ -348,14 +353,14 @@ export class WorldScene extends Phaser.Scene {
 
   doAttack() {
     if (!this.selfAlive()) return;
-    const target = this.nearestPredator(72);
+    const target = this.nearestPredator(52);
     if (target) { net.act({ type: 'attack', kind: 'predator', id: target.id }); this.faceTo(target.x, target.y); return; }
     let enemy = null, bestD = Infinity;
     for (const [, a] of this.ants) {
       if (a.colonyId === state.colony?.id) continue;
       if (a.role === ROLE.LARVA) continue;
       const d = (a.x - this.selfPos.x) ** 2 + (a.y - this.selfPos.y) ** 2;
-      if (d < bestD && d < 90 * 90) { bestD = d; enemy = a; }
+      if (d < bestD && d < 52 * 52) { bestD = d; enemy = a; }
     }
     if (enemy) { net.act({ type: 'attack', kind: 'ant', id: enemy.id }); this.faceTo(enemy.x, enemy.y); return; }
     hud.toast('Nada para atacar por perto', '', 1400);
@@ -1016,7 +1021,7 @@ export class WorldScene extends Phaser.Scene {
     // predador próximo (perigo)
     for (const [, p] of this.predators) {
       const d = (p.x - tx) ** 2 + (p.y - ty) ** 2;
-      if (d < 90 * 90 && d < bestD) {
+      if (d < 52 * 52 && d < bestD) {
         bestD = d;
         text = `<kbd>espaço</kbd> atacar ${p.name ?? 'predador'} <span class="sub">${Math.round(p.hp)} HP</span>`;
         best = { kind: 'predator', data: p };

@@ -2,10 +2,15 @@
   "name": "ant-life",
   "private": true,
   "version": "1.0.0",
-  "description": "ANT LIFE — simulador multiplayer de uma civilização de formigas em um mundo vivo",
+  "description": "ANT LIFE \u2014 simulador multiplayer de uma civiliza\u00e7\u00e3o de formigas em um mundo vivo",
   "type": "module",
-  "workspaces": ["backend", "frontend"],
-  "engines": { "node": ">=20" },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "install:all": "npm install",
     "dev": "node scripts/dev.mjs",
@@ -13,6 +18,7 @@
     "dev:frontend": "npm --workspace frontend run dev",
     "build": "npm --workspace frontend run build",
     "start": "npm --workspace backend run start",
+    "migrate": "npm --workspace backend run migrate",
     "test": "npm --workspace backend test"
   }
 }

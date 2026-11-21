@@ -1,0 +1,57 @@
+# ============================================================================
+# ANT LIFE · backend no Render (Blueprint)
+#
+# 1. Faça push deste arquivo no GitHub.
+# 2. No Render: New > Blueprint > selecione o repositório.
+# 3. Preencha DATABASE_URL e CORS_ORIGIN (marcadas como sync:false).
+# 4. O health check é /health; o WebSocket usa o mesmo host/porta.
+#
+# O frontend NÃO roda aqui: ele é estático no GitHub Pages.
+# ============================================================================
+
+services:
+  - type: web
+    name: ant-life-backend
+    runtime: node
+    plan: starter            # 512 MB não é suficiente com 60+ jogadores (ver docs/LIMITES.md)
+    region: virginia         # mais perto do Brasil que oregon; veja docs/DEPLOY.md
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /health
+    buildCommand: npm ci
+    startCommand: npm --workspace backend run start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: WORLD_SEED
+        value: "20261121"
+      - key: WORLD_ID
+        value: ant-life-1
+      - key: PERSIST
+        value: auto          # postgres quando houver DATABASE_URL
+      - key: PERSIST_INTERVAL_MS
+        value: "30000"
+      - key: MAX_PLAYERS
+        value: "120"
+      - key: MAX_DETAILED_ANTS
+        value: "420"
+      - key: MAX_ANTS
+        value: "2600"
+      - key: MAX_PREDATORS
+        value: "90"
+      - key: AI_COLONIES
+        value: "3"
+      - key: CORS_ORIGIN
+        sync: false          # ex.: https://seu-usuario.github.io
+      - key: DATABASE_URL
+        sync: false          # connection string do Supabase (porta 6543)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: LOG_LEVEL
+        value: info
