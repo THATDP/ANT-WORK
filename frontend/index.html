@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#10150f" />
+  <meta name="description" content="ANT LIFE — simulador multiplayer de uma civilização de formigas em um mundo vivo." />
+  <title>ANT LIFE · civilização de formigas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141812'/%3E%3Cellipse cx='32' cy='40' rx='13' ry='15' fill='%23c8763f'/%3E%3Cellipse cx='32' cy='24' rx='7' ry='8' fill='%23a85f34'/%3E%3Ccircle cx='32' cy='13' r='6' fill='%23e0a066'/%3E%3Cpath d='M26 10 L18 2 M38 10 L46 2' stroke='%23e0a066' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <!-- ============================================================ carregamento -->
+  <div id="loading" class="screen">
+    <div class="loading-mark">
+      <svg viewBox="0 0 120 120" class="ant-logo" aria-hidden="true">
+        <g fill="none" stroke="#e9b47c" stroke-width="2.4" stroke-linecap="round">
+          <ellipse cx="60" cy="80" rx="24" ry="27" fill="#b5673a" stroke="#e9b47c"/>
+          <ellipse cx="60" cy="48" rx="13" ry="15" fill="#9c552f" stroke="#e9b47c"/>
+          <circle cx="60" cy="28" r="11" fill="#d89a63" stroke="#e9b47c"/>
+          <path d="M50 22 L34 8 M70 22 L86 8"/>
+          <path d="M40 44 L18 34 M40 54 L16 52 M40 64 L18 70"/>
+          <path d="M80 44 L102 34 M80 54 L104 52 M80 64 L102 70"/>
+          <path d="M46 96 L34 112 M60 100 L60 118 M74 96 L86 112"/>
+        </g>
+      </svg>
+    </div>
+    <h1 class="logo-type">ANT<span>LIFE</span></h1>
+    <p class="tagline">um mundo vivo, feito de formigas</p>
+    <div class="loading-bar"><div id="loading-fill"></div></div>
+    <p id="loading-text" class="loading-text">carregando o solo…</p>
+    <p class="hint">dica: clique para ver o formigueiro</p>
+  </div>
+
+  <!-- ============================================================ menu inicial -->
+  <div id="menu" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-panel">
+      <div class="menu-head">
+        <h1 class="logo-type small">ANT<span>LIFE</span></h1>
+        <p class="tagline">civilização · cooperação · sobrevivência</p>
+      </div>
+      <div class="menu-body">
+        <label class="field">
+          <span>Seu nome de formiga</span>
+          <input id="menu-name" maxlength="20" placeholder="ex.: Teimosinha" autocomplete="off" />
+        </label>
+        <button id="btn-enter" class="btn primary big">entrar no mundo</button>
+        <p id="menu-status" class="menu-status">conectando…</p>
+        <div class="menu-links">
+          <button id="btn-how" class="btn ghost small">como jogar</button>
+          <button id="btn-settings" class="btn ghost small">configurações</button>
+          <button id="btn-credits" class="btn ghost small">sobre</button>
+        </div>
+        <div class="menu-world" id="menu-world">
+          <div><strong id="mw-players">–</strong><span>jogadores</span></div>
+          <div><strong id="mw-colonies">–</strong><span>colônias</span></div>
+          <div><strong id="mw-pop">–</strong><span>formigas</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-side">
+      <h2>o que é ANT LIFE</h2>
+      <p>Você é uma formiga num ecossistema compartilhado. Colete, escave, defenda e veja sua colônia crescer — junto com outras pessoas e centenas de formigas com vontade própria.</p>
+      <ul>
+        <li><b>Mundo persistente</b> — o que você constrói fica.</li>
+        <li><b>IA social</b> — operárias, exploradoras, guerreiras e rainhas com tarefas reais.</li>
+        <li><b>Ecossistema</b> — predadores com estratégias, clima e eventos.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ jogo -->
+  <div id="game-shell" class="hidden">
+    <div id="game-root"></div>
+
+    <!-- HUD superior -->
+    <header id="hud-top">
+      <div class="hud-colony">
+        <span id="colony-dot" class="colony-dot"></span>
+        <div class="colony-name-wrap">
+          <span id="colony-name" class="colony-name">Sem colônia</span>
+          <span id="colony-sub" class="colony-sub">explorando sozinho</span>
+        </div>
+      </div>
+
+      <div id="hud-stock" class="hud-stock"></div>
+
+      <div class="hud-right">
+        <div class="hud-stat"><span class="stat-label">pop</span><span id="stat-pop">0</span></div>
+        <div class="hud-stat"><span class="stat-label">moral</span><span id="stat-morale">0</span></div>
+        <div class="hud-weather" id="hud-weather"><span id="weather-icon">☀</span><span id="weather-text">limpo</span><span id="clock-text">–</span></div>
+        <button id="btn-menu" class="icon-btn" title="Menu (Esc)">☰</button>
+      </div>
+    </header>
+
+    <!-- laterais -->
+    <aside id="hud-left">
+      <div class="panel small-panel">
+        <div class="panel-title">você</div>
+        <div class="vitals">
+          <div class="vital"><span>vida</span><div class="bar"><i id="bar-hp"></i></div></div>
+          <div class="vital"><span>fome</span><div class="bar hunger"><i id="bar-hunger"></i></div></div>
+          <div class="vital"><span>sede</span><div class="bar thirst"><i id="bar-thirst"></i></div></div>
+        </div>
+        <div id="inventory" class="inventory">
+          <span class="inv-label">carregando</span>
+          <div class="inv-body"><span id="inv-icon">—</span><span id="inv-count">0/8</span></div>
+        </div>
+        <div class="hint-line" id="hud-hint">WASD move · E coleta · F entrega</div>
+      </div>
+
+      <div class="panel small-panel" id="threat-panel">
+        <div class="panel-title">ameaças</div>
+        <div id="threat-list" class="threat-list"><span class="muted">nada por perto</span></div>
+      </div>
+
+      <div class="panel small-panel" id="tips-panel">
+        <div class="panel-title">objetivo</div>
+        <div id="tip-text" class="tip-text">Encontre recursos e volte ao ninho.</div>
+      </div>
+    </aside>
+
+    <aside id="hud-right-side">
+      <div class="panel small-panel">
+        <div class="panel-title">mundo
+          <button class="mini-btn" data-open="map">mapa</button>
+        </div>
+        <canvas id="minimap" width="216" height="216"></canvas>
+        <div class="minimap-legend">
+          <span><i class="dot you"></i>você</span>
+          <span><i class="dot ally"></i>colônia</span>
+          <span><i class="dot threat"></i>ameaça</span>
+        </div>
+      </div>
+
+      <div class="panel small-panel">
+        <div class="panel-title">colônia
+          <button class="mini-btn" data-open="colony">gerir</button>
+        </div>
+        <div class="colony-mini">
+          <div><span>operárias</span><b id="pop-worker">0</b></div>
+          <div><span>exploradoras</span><b id="pop-scout">0</b></div>
+          <div><span>guerreiras</span><b id="pop-soldier">0</b></div>
+          <div><span>larvas</span><b id="pop-larva">0</b></div>
+          <div><span>ovos</span><b id="pop-eggs">0</b></div>
+          <div><span>obras</span><b id="pop-pending">0</b></div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="event-log" class="event-log"></div>
+    <div id="toasts" class="toasts"></div>
+    <div id="interact-prompt" class="interact-prompt hidden"></div>
+    <div id="threat-vignette" class="threat-vignette"></div>
+    <div id="weather-fx" class="weather-fx"></div>
+    <div id="damage-flash" class="damage-flash"></div>
+
+    <div id="bottom-bar">
+      <div class="action-slots">
+        <button class="action" data-action="gather"><b>E</b><span>coletar</span></button>
+        <button class="action" data-action="deposit"><b>F</b><span>entregar</span></button>
+        <button class="action" data-action="eat"><b>R</b><span>comer</span></button>
+        <button class="action" data-action="attack"><b>espaço</b><span>atacar</span></button>
+        <button class="action" data-action="build"><b>B</b><span>construir</span></button>
+        <button class="action" data-action="map"><b>M</b><span>mapa</span></button>
+      </div>
+      <button id="btn-players" class="pill-btn">jogadores <span id="players-count">0</span></button>
+      <button id="btn-chat" class="pill-btn">chat <span id="chat-badge" class="hidden"></span></button>
+    </div>
+
+    <div id="chat-panel" class="chat-panel hidden">
+      <div class="chat-head">
+        <div class="chat-tabs">
+          <button class="chat-tab active" data-channel="global">global</button>
+          <button class="chat-tab" data-channel="colony">colônia</button>
+        </div>
+        <button id="chat-close" class="mini-btn">fechar</button>
+      </div>
+      <div id="chat-messages" class="chat-messages"></div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" maxlength="160" placeholder="diga algo à colônia…" autocomplete="off" />
+        <button type="submit" class="mini-btn">enviar</button>
+      </form>
+    </div>
+
+    <div id="players-panel" class="floating-panel hidden">
+      <div class="panel-head"><h3>formigas online</h3><button class="mini-btn" data-close="players">fechar</button></div>
+      <div id="players-list" class="players-list"></div>
+    </div>
+
+    <!-- overlays -->
+    <div id="building-menu" class="overlay hidden">
+      <div class="overlay-card wide">
+        <div class="panel-head">
+          <h2>construir</h2>
+          <button class="mini-btn" data-close="building">fechar · B</button>
+        </div>
+        <div class="build-grid" id="build-grid"></div>
+        <p class="build-hint" id="build-hint">Escolha uma estrutura. O custo sai do estoque da colônia.</p>
+      </div>
+    </div>
+
+    <div id="colony-panel" class="overlay hidden">
+      <div class="overlay-card wide">
+        <div class="panel-head">
+          <h2 id="colony-panel-title">colônia</h2>
+          <button class="mini-btn" data-close="colony">fechar</button>
+        </div>
+        <div class="colony-grid">
+          <section>
+            <h4>estoque</h4>
+            <div id="colony-stock" class="stock-list"></div>
+            <h4>membros</h4>
+            <div id="colony-members" class="members-list"></div>
+          </section>
+          <section>
+            <h4>estruturas</h4>
+            <div id="colony-structures" class="structures-list"></div>
+          </section>
+          <section>
+            <h4>situação</h4>
+            <div id="colony-status" class="status-list"></div>
+            <div id="colony-perms" class="perms"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="map-panel" class="overlay hidden">
+      <div class="overlay-card map-card">
+        <div class="panel-head">
+          <h2>mapa do mundo</h2>
+          <button class="mini-btn" data-close="map">fechar · M</button>
+        </div>
+        <canvas id="big-map" width="900" height="900"></canvas>
+        <div class="map-legend">
+          <span><i class="dot you"></i>você</span>
+          <span><i class="dot ally"></i>sua colônia</span>
+          <span><i class="dot enemy"></i>outras colônias</span>
+          <span><i class="dot threat"></i>predadores</span>
+          <span><i class="dot poi"></i>recursos</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="settings-panel" class="overlay hidden">
+      <div class="overlay-card">
+        <div class="panel-head">
+          <h2>configurações</h2>
+          <button class="mini-btn" data-close="settings">fechar</button>
+        </div>
+        <div class="settings-body">
+          <label class="setting"><span>Volume</span><input id="set-volume" type="range" min="0" max="100" value="45" /></label>
+          <label class="setting"><span>Zoom inicial</span><input id="set-zoom" type="range" min="45" max="160" value="100" /></label>
+          <label class="setting"><span>Partículas</span><input id="set-particles" type="checkbox" checked /></label>
+          <label class="setting"><span>Nomes flutuantes</span><input id="set-names" type="checkbox" checked /></label>
+          <label class="setting"><span>Tela de impacto</span><input id="set-shake" type="checkbox" checked /></label>
+          <div class="settings-actions">
+            <button id="btn-change-colony" class="btn ghost">trocar de colônia</button>
+            <button id="btn-quit" class="btn danger">sair do mundo</button>
+          </div>
+          <p class="version" id="version-label">ANT LIFE 1.0.0</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="colony-select" class="overlay hidden">
+      <div class="overlay-card wide">
+        <div class="panel-head">
+          <h2>sua colônia</h2>
+          <span class="muted" id="colony-select-hint">escolha uma colônia ou funde a sua</span>
+        </div>
+        <div class="colony-select-grid">
+          <div id="colony-list" class="colony-list"></div>
+          <div class="colony-create">
+            <h4>fundar nova colônia</h4>
+            <label class="field"><span>nome</span><input id="new-colony-name" maxlength="24" placeholder="ex.: Colônia da Figueira" /></label>
+            <div class="color-row" id="new-colony-colors"></div>
+            <button id="btn-create-colony" class="btn primary">fundar colônia</button>
+            <button id="btn-solo" class="btn ghost small">explorar sozinho</button>
+            <p class="muted small">Fundar exige alguns segundos de exploração. Você será o fundador e poderá gerenciar cargos e permissões.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="help-panel" class="overlay hidden">
+      <div class="overlay-card wide">
+        <div class="panel-head"><h2>como jogar</h2><button class="mini-btn" data-close="help">fechar</button></div>
+        <div class="help-grid">
+          <section>
+            <h4>movimento</h4>
+            <p><kbd>W A S D</kbd> ou setas para andar. <kbd>scroll</kbd> dá zoom. A câmera segue você.</p>
+            <h4>coleta</h4>
+            <p>Aproxime-se de folhas, sementes, frutas, insetos, água ou materiais e pressione <kbd>E</kbd>. Volte ao ninho e use <kbd>F</kbd> para entregar ao estoque da colônia.</p>
+            <h4>construção</h4>
+            <p><kbd>B</kbd> abre o catálogo. Túneis ligam câmaras, depósitos aumentam o estoque, berçários aceleram larvas, jardins de fungos produzem comida e a Câmara da Rainha fortalece a postura.</p>
+          </section>
+          <section>
+            <h4>colônia</h4>
+            <p>Você pode fundar ou entrar numa colônia. Fundador e oficiais podem demolir obras e gerenciar membros. Recursos do estoque são compartilhados.</p>
+            <h4>sobrevivência</h4>
+            <p>Comida e água mantêm vida e moral. Predadores têm territórios e medo: um grupo de guerreiras costuma bastar para afastá-los. À noite eles ficam mais ousados.</p>
+            <h4>comunicação</h4>
+            <p><kbd>Enter</kbd> abre o chat. Use o canal da colônia para coordenar construções e defesas.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="credits-panel" class="overlay hidden">
+      <div class="overlay-card">
+        <div class="panel-head"><h2>sobre ANT LIFE</h2><button class="mini-btn" data-close="credits">fechar</button></div>
+        <div class="credits-body">
+          <p>Um simulador multiplayer de ecossistema: formigas jogadoras, colônias compartilhadas e uma população de IA com tarefas, prioridades e relações.</p>
+          <p>Frontend em Phaser 3 + Vite. Backend autoritativo em Node.js, Express e Socket.IO, com mundo persistente no Supabase Postgres.</p>
+          <p class="muted">Todo o mundo é gerado a partir de uma semente — o mesmo solo, os mesmos rios, para todo mundo.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="death-screen" class="screen death hidden">
+      <h2>você caiu</h2>
+      <p id="death-reason">o mundo é maior que uma formiga</p>
+      <p class="muted" id="death-timer">renascendo em 7s</p>
+      <button id="btn-respawn" class="btn primary">renascer agora</button>
+    </div>
+
+    <div id="disconnect-banner" class="disconnect hidden">conexão perdida — tentando voltar…</div>
+
+    <!-- controles móveis -->
+    <div id="touch-controls" class="touch-controls hidden">
+      <div id="joystick" class="joystick"><div id="joystick-knob"></div></div>
+      <div class="touch-actions">
+        <button class="touch-btn" data-action="gather">E</button>
+        <button class="touch-btn" data-action="deposit">F</button>
+        <button class="touch-btn" data-action="attack">⚔</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
